@@ -1,15 +1,24 @@
 use csv::{Reader, DeserializeRecordsIntoIter};
 use std::fs::File;
-use crate::model::SerialTransaction;
-use crate::model::Client;
+use std::convert::TryFrom;
+use crate::model::{SerialTransaction, Transaction};
+use crate::model::Account;
 
-pub fn read_csv(buffer: &mut Reader<File>) -> () {
-    for result in buffer.deserialize() {
-        let tx: SerialTransaction = result.unwrap();
-        println!("{:?}", tx)
-    }
+pub struct Ledger {
+    clients: Vec<Account>,
 }
 
-struct Ledger {
-    clients: Vec<Client>,
+impl TryFrom<&mut Reader<File>> for Ledger {
+    type Error = ();
+
+    fn try_from(buffer: &mut Reader<File>) -> Result<Self, Self::Error> {
+        for result in buffer.deserialize() {
+            let tx: SerialTransaction = result.unwrap();
+            let tx = Transaction::try_from(tx)?;
+        }
+
+        Ok(Ledger {
+            clients: Vec::new()
+        })
+    }
 }

@@ -1,16 +1,5 @@
-use serde::{Deserialize, Deserializer, de};
-use serde::de::Visitor;
-use std::fmt;
+use super::SerialTransaction;
 use std::convert::TryFrom;
-
-#[derive(Debug, Deserialize)]
-pub struct SerialTransaction {
-    #[serde(rename = "type")]
-    tx_type: String,
-    client: u16,
-    tx: u32,
-    amount: f32,
-}
 
 pub struct Transaction {
     tx_type: TxType,

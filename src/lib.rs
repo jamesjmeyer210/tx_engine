@@ -1,10 +1,6 @@
 mod model;
 mod ledger;
 
-trait Add<T> {
-    fn add(&mut self, n: T) -> ();
-}
-
 trait TryAdd<T> {
     type Error;
 
@@ -13,6 +9,10 @@ trait TryAdd<T> {
 
 trait Contains<T> {
     fn contains(&self, target: T) -> bool;
+}
+
+trait FindBy<T> {
+    fn find_by(&self, target: T) -> Option<u32>;
 }
 
 pub type Ledger = ledger::Ledger;

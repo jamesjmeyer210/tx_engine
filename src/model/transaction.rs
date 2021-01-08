@@ -25,11 +25,12 @@ impl TryFrom<&str> for TxType {
 }
 
 pub type ClientId = u16;
+pub type TxId = u32;
 
 pub struct Transaction {
     pub tx_type: TxType,
     pub client: ClientId,
-    pub tx: u32,
+    pub tx: TxId,
     pub amount: f32,
 }
 

@@ -1,11 +1,12 @@
-use csv::{Reader, DeserializeRecordsIntoIter};
+use csv::{Reader};
 use std::fs::File;
 use std::convert::TryFrom;
-use crate::model::{SerialTransaction, Transaction, ClientId};
+use crate::model::{SerialTransaction, Transaction, TxType, ClientId, TxId};
 use crate::model::Account;
-use crate::{Add, Contains};
+use crate::{Contains, FindBy, TryAdd};
 
 pub struct Ledger {
+    transactions: Vec<Transaction>,
     accounts: Vec<Account>,
 }
 
@@ -19,28 +20,49 @@ impl TryFrom<&mut Reader<File>> for Ledger {
         }
 
         Ok(Ledger {
-            accounts: Vec::new()
+            transactions: Vec::new(),
+            accounts: Vec::new(),
         })
     }
 }
 
-impl Contains<ClientId> for Ledger {
-    fn contains(&self, target: ClientId) -> bool {
-        let mut contains = false;
-        self.accounts.iter().for_each(|a|{
-            if a.client == target {
-                contains = true;
+impl FindBy<TxId> for Vec<Transaction> {
+    fn find_by(&self, target: u32) -> Option<u32> {
+        let mut index = 0;
+        for transaction in self.iter() {
+            if transaction.tx == target {
+                return Some(index);
             }
-        });
-        contains
+            index += 1;
+        }
+        None
     }
 }
 
-impl Add<Transaction> for Ledger {
-    fn add(&mut self, n: Transaction) -> () {
-        if !self.contains(n.client) {
+impl Contains<ClientId> for Vec<Account> {
+    fn contains(&self, target: ClientId) -> bool {
+        self.find_by(target).is_some()
+    }
+}
 
+impl FindBy<ClientId> for Vec<Account> {
+    fn find_by(&self, target: u16) -> Option<u32> {
+        let mut index = 0;
+        for account in self.iter() {
+            if account.client == target {
+                return Some(index);
+            }
+            index += 1;
         }
+        None
+    }
+}
+
+impl TryAdd<Transaction> for Ledger {
+    type Error = ();
+
+    fn try_add(&mut self, tx: Transaction) -> Result<&Self, Self::Error> {
+        unimplemented!()
     }
 }
 
@@ -50,34 +72,36 @@ mod test {
     use super::*;
 
     #[test]
-    fn contains_returns_false_when_client_id_does_not_exit() {
-        let ledger = Ledger {
-            accounts: vec![Account {
-                client: 1,
-                available: 0.0,
-                held: 0.0,
-                total: 0.0,
-                locked: false,
-            }]
-        };
+    fn find_by_returns_index_of_account() {
+        let accounts: Vec<Account> = vec![Account::with_client_id(1)
+                                          , Account::with_client_id(2)
+                                          , Account::with_client_id(3)];
 
-        let result = ledger.contains(2);
+        assert_eq!(Some(2), accounts.find_by(3));
+    }
+
+    #[test]
+    fn find_by_returns_none_when_account_does_not_exist() {
+        let accounts: Vec<Account> = vec![Account::with_client_id(1)
+                                          , Account::with_client_id(2)
+                                          , Account::with_client_id(3)];
+
+        assert_eq!(None, accounts.find_by(4));
+    }
+
+    #[test]
+    fn contains_returns_false_when_client_id_does_not_exit() {
+        let accounts: Vec<Account> = vec![Account::with_client_id(1)];
+
+        let result = accounts.contains(2);
         assert_eq!(false, result);
     }
 
     #[test]
     fn contains_returns_true_when_client_id_exits() {
-        let ledger = Ledger {
-            accounts: vec![Account {
-                client: 2,
-                available: 0.0,
-                held: 0.0,
-                total: 0.0,
-                locked: false,
-            }]
-        };
+        let accounts: Vec<Account> = vec![Account::with_client_id(2)];
 
-        let result = ledger.contains(2);
+        let result = accounts.contains(2);
         assert_eq!(true, result);
     }
 

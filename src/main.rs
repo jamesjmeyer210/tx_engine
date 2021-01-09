@@ -1,8 +1,8 @@
+use csv::Trim;
+use std::convert::TryFrom;
 use std::env;
 use std::io;
 use tx_engine::Ledger;
-use std::convert::TryFrom;
-use csv::Trim;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -17,7 +17,7 @@ fn main() -> io::Result<()> {
             let mut ledger = Ledger::try_from(&mut reader).unwrap();
             ledger.display().unwrap();
             Ok(())
-        },
-        _ => Err(io::Error::from(io::ErrorKind::InvalidInput))
+        }
+        _ => Err(io::Error::from(io::ErrorKind::InvalidInput)),
     }
 }

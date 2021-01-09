@@ -1,6 +1,6 @@
+mod account;
 mod serial_transaction;
 mod transaction;
-mod account;
 
 pub type SerialTransaction = serial_transaction::SerialTransaction;
 

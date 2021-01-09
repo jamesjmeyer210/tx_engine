@@ -1,16 +1,16 @@
-mod model;
 mod ledger;
+mod model;
 
 trait TryAdd<T> {
     type Error;
 
-    fn try_add(&mut self, _: T) -> Result<&Self,Self::Error>;
+    fn try_add(&mut self, _: T) -> Result<&Self, Self::Error>;
 }
 
 trait Verify<T> {
     type Error;
 
-    fn verify(&self, _: T) -> Result<Option<T>,Self::Error>;
+    fn verify(&self, _: T) -> Result<Option<T>, Self::Error>;
 }
 
 trait FindBy<T> {

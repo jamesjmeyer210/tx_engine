@@ -1,9 +1,9 @@
-use csv::{Reader};
-use std::fs::File;
-use std::convert::TryFrom;
-use crate::model::{SerialTransaction, Transaction, TransactionError, TxType, ClientId, TxId};
 use crate::model::{Account, AccountError};
+use crate::model::{ClientId, SerialTransaction, Transaction, TransactionError, TxId, TxType};
 use crate::{FindBy, TryAdd, Verify};
+use csv::Reader;
+use std::convert::TryFrom;
+use std::fs::File;
 
 #[derive(Debug, PartialEq)]
 pub enum LedgerError {
@@ -33,9 +33,8 @@ pub struct Ledger {
 
 impl Ledger {
     pub fn display(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-
         let mut wtr = csv::Writer::from_writer(std::io::stdout());
-        for account in self.accounts.drain(..){
+        for account in self.accounts.drain(..) {
             wtr.serialize(account)?;
         }
         wtr.flush()?;
@@ -86,31 +85,27 @@ impl FindBy<TxId> for Vec<Box<Transaction>> {
 impl Verify<Box<Transaction>> for Vec<Box<Transaction>> {
     type Error = LedgerError;
 
-    fn verify(&self, tx: Box<Transaction>) -> Result<Option<Box<Transaction>>,LedgerError> {
+    fn verify(&self, tx: Box<Transaction>) -> Result<Option<Box<Transaction>>, LedgerError> {
         match tx.tx_type {
             // case of the reference transactions
-            TxType::Dispute | TxType::Resolve | TxType::Chargeback => {
-                match self.find_by(tx.tx) {
-                    Some(index) => {
-                        let reference = self.get(index).unwrap();
-                        let result = Transaction {
-                            tx_type: tx.tx_type,
-                            tx: tx.tx,
-                            client: tx.client,
-                            amount: reference.amount,
-                        };
-                        Ok(Some(Box::new(result)))
-                    },
-                    None => Ok(None),
+            TxType::Dispute | TxType::Resolve | TxType::Chargeback => match self.find_by(tx.tx) {
+                Some(index) => {
+                    let reference = self.get(index).unwrap();
+                    let result = Transaction {
+                        tx_type: tx.tx_type,
+                        tx: tx.tx,
+                        client: tx.client,
+                        amount: reference.amount,
+                    };
+                    Ok(Some(Box::new(result)))
                 }
+                None => Ok(None),
             },
             // case of the value transactions
-            _ => {
-                match self.find_by(tx.tx) {
-                    None => Ok(Some(tx)),
-                    _ => Err(LedgerError::DuplicateTransaction),
-                }
-            }
+            _ => match self.find_by(tx.tx) {
+                None => Ok(Some(tx)),
+                _ => Err(LedgerError::DuplicateTransaction),
+            },
         }
     }
 }
@@ -135,7 +130,7 @@ impl TryAdd<&Transaction> for Vec<Box<Account>> {
         match self.find_by(tx.client) {
             Some(index) => {
                 self.get_mut(index).unwrap().try_add(tx)?;
-            },
+            }
             None => {
                 let mut account = Account::with_client_id(tx.client);
                 account.try_add(tx)?;
@@ -155,10 +150,8 @@ impl TryAdd<Transaction> for Ledger {
                 self.accounts.try_add(&tx)?;
                 self.transactions.push(tx);
                 Ok(self)
-            },
-            None => {
-                Ok(self)
             }
+            None => Ok(self),
         }
     }
 }
@@ -170,24 +163,28 @@ mod test {
 
     #[test]
     fn find_by_returns_index_of_account() {
-        let accounts: Vec<Box<Account>> = vec![Box::new(Account::with_client_id(1))
-                                          , Box::new(Account::with_client_id(2))
-                                          , Box::new(Account::with_client_id(3))];
+        let accounts: Vec<Box<Account>> = vec![
+            Box::new(Account::with_client_id(1)),
+            Box::new(Account::with_client_id(2)),
+            Box::new(Account::with_client_id(3)),
+        ];
 
         assert_eq!(Some(2), accounts.find_by(3));
     }
 
     #[test]
     fn find_by_returns_none_when_account_does_not_exist() {
-        let accounts: Vec<Box<Account>> = vec![Box::new(Account::with_client_id(1))
-                                          , Box::new(Account::with_client_id(2))
-                                          , Box::new(Account::with_client_id(3))];
+        let accounts: Vec<Box<Account>> = vec![
+            Box::new(Account::with_client_id(1)),
+            Box::new(Account::with_client_id(2)),
+            Box::new(Account::with_client_id(3)),
+        ];
 
         assert_eq!(None, accounts.find_by(4));
     }
 
     #[test]
-    fn verify_returns_ok_when_tx_is_new() -> Result<(),LedgerError> {
+    fn verify_returns_ok_when_tx_is_new() -> Result<(), LedgerError> {
         let txs: Vec<Box<Transaction>> = Vec::new();
 
         let tx = Box::new(Transaction {
@@ -221,7 +218,7 @@ mod test {
     }
 
     #[test]
-    fn verify_returns_ok_with_new_tx_when_tx_is_reference() -> Result<(),LedgerError> {
+    fn verify_returns_ok_with_new_tx_when_tx_is_reference() -> Result<(), LedgerError> {
         let txs: Vec<Box<Transaction>> = vec![Box::new(Transaction {
             tx_type: TxType::Deposit,
             tx: 1,
@@ -232,7 +229,7 @@ mod test {
         let ref_tx_types = vec![TxType::Dispute, TxType::Resolve, TxType::Chargeback];
 
         for tx_type in ref_tx_types {
-            let ref_tx = Box::new( Transaction {
+            let ref_tx = Box::new(Transaction {
                 tx_type: tx_type.clone(),
                 tx: 1,
                 client: 2,
@@ -250,13 +247,13 @@ mod test {
     }
 
     #[test]
-    fn verify_returns_none_when_referred_to_tx_does_not_exit() -> Result<(),LedgerError> {
+    fn verify_returns_none_when_referred_to_tx_does_not_exit() -> Result<(), LedgerError> {
         let txs: Vec<Box<Transaction>> = vec![];
 
         let ref_tx_types = vec![TxType::Dispute, TxType::Resolve, TxType::Chargeback];
 
         for tx_type in ref_tx_types {
-            let ref_tx = Box::new( Transaction {
+            let ref_tx = Box::new(Transaction {
                 tx_type: tx_type.clone(),
                 tx: 1,
                 client: 2,
@@ -270,7 +267,7 @@ mod test {
     }
 
     #[test]
-    fn try_add_for_accounts_adds_account_when_tx_is_new() -> Result<(),AccountError> {
+    fn try_add_for_accounts_adds_account_when_tx_is_new() -> Result<(), AccountError> {
         let mut acs: Vec<Box<Account>> = vec![];
 
         let tx = Transaction {
@@ -285,7 +282,7 @@ mod test {
     }
 
     #[test]
-    fn try_add_for_accounts_updates_account_when_account_exists() -> Result<(),AccountError> {
+    fn try_add_for_accounts_updates_account_when_account_exists() -> Result<(), AccountError> {
         let mut acs: Vec<Box<Account>> = vec![];
 
         let txs = vec![
@@ -300,7 +297,7 @@ mod test {
                 tx: 2,
                 client: 2,
                 amount: 5.00,
-            }
+            },
         ];
 
         for tx in txs.iter() {

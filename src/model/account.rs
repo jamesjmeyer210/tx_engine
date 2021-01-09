@@ -1,8 +1,8 @@
-use serde::{Serialize};
 use super::ClientId;
-use crate::TryAdd;
 use crate::model::Transaction;
 use crate::model::TxType;
+use crate::TryAdd;
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct Account {
@@ -15,7 +15,7 @@ pub struct Account {
 
 #[derive(Debug, PartialEq)]
 pub enum AccountError {
-    InsufficientFunds
+    InsufficientFunds,
 }
 
 impl Account {
@@ -35,44 +35,41 @@ impl Account {
         account
     }
 
-    fn deposit(&mut self, amount: f64) -> Result<&Self,AccountError> {
+    fn deposit(&mut self, amount: f64) -> Result<&Self, AccountError> {
         self.available += amount;
         self.total += amount;
         Ok(self)
     }
 
-    fn withdraw(&mut self, amount: f64) -> Result<&Self,AccountError> {
+    fn withdraw(&mut self, amount: f64) -> Result<&Self, AccountError> {
         if self.available < amount {
             Err(AccountError::InsufficientFunds)
-        }
-        else {
+        } else {
             self.total -= amount;
             self.available -= amount;
             Ok(self)
         }
     }
 
-    fn dispute(&mut self, amount: f64) -> Result<&Self,AccountError> {
+    fn dispute(&mut self, amount: f64) -> Result<&Self, AccountError> {
         self.available -= amount;
         self.held += amount;
         Ok(self)
     }
 
-    fn resolve(&mut self, amount: f64) -> Result<&Self,AccountError> {
+    fn resolve(&mut self, amount: f64) -> Result<&Self, AccountError> {
         self.available += amount;
         self.held -= amount;
         Ok(self)
     }
 
-    fn chargeback(&mut self, amount: f64) -> Result<&Self,AccountError> {
+    fn chargeback(&mut self, amount: f64) -> Result<&Self, AccountError> {
         self.held -= amount;
         self.total -= amount;
         self.locked = true;
         Ok(self)
     }
 }
-
-
 
 impl TryAdd<&Transaction> for Account {
     type Error = AccountError;
@@ -99,14 +96,14 @@ mod test {
     }
 
     #[test]
-    fn try_add_returns_ok_on_deposit() -> Result<(),AccountError> {
+    fn try_add_returns_ok_on_deposit() -> Result<(), AccountError> {
         let mut account = Account::new();
 
         let tx = Transaction {
             tx_type: TxType::Deposit,
             client: 0,
             tx: 0,
-            amount: 2.3
+            amount: 2.3,
         };
 
         let result = account.try_add(&tx);
@@ -118,7 +115,7 @@ mod test {
     }
 
     #[test]
-    fn withdraw_returns_ok_on_sufficient_funds() -> Result<(),AccountError> {
+    fn withdraw_returns_ok_on_sufficient_funds() -> Result<(), AccountError> {
         let mut account = Account::new();
         account.total = 99.0001;
         account.available = 99.0001;
@@ -139,13 +136,15 @@ mod test {
 
         let result = account.withdraw(99.0002);
         assert!(result.is_err());
-        result.map_err(|o|{
-            assert_eq!(AccountError::InsufficientFunds, o);
-        }).unwrap_err()
+        result
+            .map_err(|o| {
+                assert_eq!(AccountError::InsufficientFunds, o);
+            })
+            .unwrap_err()
     }
 
     #[test]
-    fn dispute_decreases_available_and_increases_held() -> Result<(),AccountError> {
+    fn dispute_decreases_available_and_increases_held() -> Result<(), AccountError> {
         let mut account = Account::new();
         account.available = 42.0024;
         account.held = 24.0042;
@@ -157,7 +156,7 @@ mod test {
     }
 
     #[test]
-    fn resolve_increase_available_and_decreases_held() -> Result<(),AccountError> {
+    fn resolve_increase_available_and_decreases_held() -> Result<(), AccountError> {
         let mut account = Account::new();
         account.available = 42.0024;
         account.held = 24.0042;
@@ -169,7 +168,7 @@ mod test {
     }
 
     #[test]
-    fn chargeback_decreases_total_and_held_and_locks_account() -> Result<(),AccountError> {
+    fn chargeback_decreases_total_and_held_and_locks_account() -> Result<(), AccountError> {
         let mut account = Account::new();
         account.total = 23.5711;
         account.held = 3.35;

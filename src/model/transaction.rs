@@ -45,15 +45,16 @@ impl TryFrom<SerialTransaction> for Transaction {
 
     fn try_from(value: SerialTransaction) -> Result<Self, Self::Error> {
         let tx_type = TxType::try_from(&*value.tx_type)?;
+        let amount = value.amount.unwrap_or(0.0);
 
-        if 0.0 > value.amount {
+        if 0.0 > amount {
             Err(TransactionError::NegativeAmount)
         } else {
             Ok(Transaction {
                 tx_type,
                 client: value.client,
                 tx: value.tx,
-                amount: value.amount,
+                amount,
             })
         }
     }

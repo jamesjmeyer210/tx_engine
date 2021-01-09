@@ -3,7 +3,7 @@ use std::fs::File;
 use std::convert::TryFrom;
 use crate::model::{SerialTransaction, Transaction, TransactionError, TxType, ClientId, TxId};
 use crate::model::{Account, AccountError};
-use crate::{Contains, FindBy, TryAdd, Verify};
+use crate::{FindBy, TryAdd, Verify};
 
 #[derive(Debug)]
 pub enum LedgerError {
@@ -12,26 +12,26 @@ pub enum LedgerError {
     AccountError(AccountError),
     TransactionError(TransactionError),
 }
-
+// Enable propagation of errors up from Account mutation layer
 impl From<AccountError> for LedgerError {
     fn from(e: AccountError) -> Self {
         LedgerError::AccountError(e)
     }
 }
-
+// Enable propagation of errors from Transaction creation layer
 impl From<TransactionError> for LedgerError {
     fn from(e: TransactionError) -> Self {
         LedgerError::TransactionError(e)
     }
 }
-
+// Ledger is a data structure that tracks transactions and accounts, keeping the respective
+// entities on the heap
 pub struct Ledger {
     transactions: Vec<Box<Transaction>>,
     accounts: Vec<Box<Account>>,
 }
 
 impl Ledger {
-
     pub fn display(&self) -> () {
         self.accounts.iter().for_each(|a|{
             println!("{:?}", a.as_ref())
@@ -68,12 +68,6 @@ impl FindBy<TxId> for Vec<Box<Transaction>> {
             index += 1;
         }
         None
-    }
-}
-
-impl Contains<ClientId> for Vec<Box<Account>> {
-    fn contains(&self, target: ClientId) -> bool {
-        self.find_by(target).is_some()
     }
 }
 
@@ -184,22 +178,5 @@ mod test {
 
         assert_eq!(None, accounts.find_by(4));
     }
-
-    #[test]
-    fn contains_returns_false_when_client_id_does_not_exit() {
-        let accounts: Vec<Box<Account>> = vec![Box::new(Account::with_client_id(1))];
-
-        let result = accounts.contains(2);
-        assert_eq!(false, result);
-    }
-
-    #[test]
-    fn contains_returns_true_when_client_id_exits() {
-        let accounts: Vec<Box<Account>> = vec![Box::new(Account::with_client_id(2))];
-
-        let result = accounts.contains(2);
-        assert_eq!(true, result);
-    }
-
 
 }

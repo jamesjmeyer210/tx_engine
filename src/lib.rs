@@ -13,10 +13,6 @@ trait Verify<T> {
     fn verify(&self, _: T) -> Result<Option<T>,Self::Error>;
 }
 
-trait Contains<T> {
-    fn contains(&self, target: T) -> bool;
-}
-
 trait FindBy<T> {
     fn find_by(&self, target: T) -> Option<usize>;
 }

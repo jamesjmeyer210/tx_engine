@@ -50,6 +50,9 @@ impl TryFrom<&mut Reader<File>> for Ledger {
 
         for result in buffer.deserialize() {
             let tx: SerialTransaction = result.unwrap();
+            // Consume the SerialTransaction and convert it into a Transaction. There's a more
+            // efficient way to do this with Serde, which doesn't require the adaptive type,
+            // SerialTransaction, but this works for now.
             let tx = Transaction::try_from(tx)?;
             ledger.try_add(tx)?;
         }
@@ -259,6 +262,51 @@ mod test {
             assert!(txs.verify(ref_tx)?.is_none())
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn try_add_for_accounts_adds_account_when_tx_is_new() -> Result<(),AccountError> {
+        let mut acs: Vec<Box<Account>> = vec![];
+
+        let tx = Transaction {
+            tx_type: TxType::Deposit,
+            tx: 1,
+            client: 2,
+            amount: 10.00,
+        };
+
+        assert_eq!(1, acs.try_add(&tx)?.len());
+        Ok(())
+    }
+
+    #[test]
+    fn try_add_for_accounts_updates_account_when_account_exists() -> Result<(),AccountError> {
+        let mut acs: Vec<Box<Account>> = vec![];
+
+        let txs = vec![
+            Transaction {
+                tx_type: TxType::Deposit,
+                tx: 1,
+                client: 2,
+                amount: 10.00,
+            },
+            Transaction {
+                tx_type: TxType::Withdraw,
+                tx: 2,
+                client: 2,
+                amount: 5.00,
+            }
+        ];
+
+        for tx in txs.iter() {
+            assert_eq!(1, acs.try_add(&tx)?.len());
+        }
+
+        let acc = acs.first().unwrap();
+        assert_eq!(2, acc.client);
+        assert_eq!(5.00, acc.available);
+        assert_eq!(5.00, acc.total);
         Ok(())
     }
 }

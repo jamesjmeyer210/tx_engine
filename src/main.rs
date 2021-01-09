@@ -1,6 +1,5 @@
 use std::env;
 use std::io;
-use std::fs::File;
 use tx_engine::Ledger;
 use std::convert::TryFrom;
 

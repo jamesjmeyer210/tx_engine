@@ -83,7 +83,7 @@ impl TryAdd<&Transaction> for Account {
             TxType::Withdraw => self.withdraw(tx.amount),
             TxType::Dispute => self.dispute(tx.amount),
             TxType::Resolve => self.resolve(tx.amount),
-            TxType::Chargeback => self.resolve(tx.amount),
+            TxType::Chargeback => self.chargeback(tx.amount),
         }
     }
 }
@@ -136,6 +136,6 @@ mod test {
         assert!(result.is_err());
         result.map_err(|o|{
             assert_eq!(AccountError::InsufficientFunds, o);
-        });
+        }).unwrap_err()
     }
 }

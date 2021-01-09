@@ -4,7 +4,6 @@ use std::convert::TryFrom;
 use crate::model::{SerialTransaction, Transaction, TransactionError, TxType, ClientId, TxId};
 use crate::model::{Account, AccountError};
 use crate::{Contains, FindBy, TryAdd, Verify};
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum LedgerError {
@@ -134,8 +133,7 @@ impl TryAdd<&Transaction> for Vec<Box<Account>> {
     fn try_add(&mut self, tx: &Transaction) -> Result<&Self, Self::Error> {
         match self.find_by(tx.client) {
             Some(index) => {
-                let mut account: &mut Account = self.get_mut(index).unwrap();
-                account.try_add(tx)?;
+                self.get_mut(index).unwrap().try_add(tx)?;
             },
             None => {
                 let mut account = Account::with_client_id(tx.client);

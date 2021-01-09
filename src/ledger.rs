@@ -1,30 +1,61 @@
 use csv::{Reader};
 use std::fs::File;
 use std::convert::TryFrom;
-use crate::model::{SerialTransaction, Transaction, TxType, ClientId, TxId};
+use crate::model::{SerialTransaction, Transaction, TransactionError, TxType, ClientId, TxId};
 use crate::model::{Account, AccountError};
-use crate::{Contains, FindBy, TryAdd};
+use crate::{Contains, FindBy, TryAdd, Verify};
+use std::rc::Rc;
+
+#[derive(Debug)]
+pub enum LedgerError {
+    TransactionNotFound,
+    DuplicateTransaction,
+    AccountError(AccountError),
+    TransactionError(TransactionError),
+}
+
+impl From<AccountError> for LedgerError {
+    fn from(e: AccountError) -> Self {
+        LedgerError::AccountError(e)
+    }
+}
+
+impl From<TransactionError> for LedgerError {
+    fn from(e: TransactionError) -> Self {
+        LedgerError::TransactionError(e)
+    }
+}
 
 pub struct Ledger {
     transactions: Vec<Box<Transaction>>,
     accounts: Vec<Box<Account>>,
 }
 
-pub type LedgerError = &'static str;
+impl Ledger {
+
+    pub fn display(&self) -> () {
+        self.accounts.iter().for_each(|a|{
+            println!("{:?}", a)
+        })
+    }
+}
 
 impl TryFrom<&mut Reader<File>> for Ledger {
-    type Error = ();
+    type Error = LedgerError;
 
     fn try_from(buffer: &mut Reader<File>) -> Result<Self, Self::Error> {
+        let mut ledger = Ledger {
+            transactions: Vec::new(),
+            accounts: Vec::new(),
+        };
+
         for result in buffer.deserialize() {
             let tx: SerialTransaction = result.unwrap();
             let tx = Transaction::try_from(tx)?;
+            ledger.try_add(tx)?;
         }
 
-        Ok(Ledger {
-            transactions: Vec::new(),
-            accounts: Vec::new(),
-        })
+        Ok(ledger)
     }
 }
 
@@ -47,20 +78,38 @@ impl Contains<ClientId> for Vec<Box<Account>> {
     }
 }
 
-impl TryAdd<Transaction> for Vec<Box<Transaction>> {
-    type Error = ();
+// Verify<&Transaction> for Vec<Box<Transaction>>
+// There are 2 types of transactions regarding how they are added: 1) value transactions
+// and 2) reference transactions. Value transactions are new items, with unique ids. Reference
+// transactions are dependent on an existing transaction id in order to exist.
+// Transactions are also unique, so transaction ids must never be duplicated.
+impl Verify<Box<Transaction>> for Vec<Box<Transaction>> {
+    type Error = LedgerError;
 
-    fn try_add(&mut self, tx: Transaction) -> Result<&Self, Self::Error> {
+    fn verify(&self, tx: Box<Transaction>) -> Result<Option<Box<Transaction>>,LedgerError> {
         match tx.tx_type {
+            // case of the reference transactions
             TxType::Dispute | TxType::Deposit | TxType::Chargeback => {
                 match self.find_by(tx.tx) {
-                    Some(_) => Ok(self),
-                    None => Err(()),
+                    Some(index) => {
+                        let reference = self.get(index).unwrap();
+                        let result = Transaction {
+                            tx_type: tx.tx_type,
+                            tx: tx.tx,
+                            client: tx.client,
+                            amount: reference.amount,
+                        };
+                        Ok(Some(Box::new(result)))
+                    },
+                    None => Ok(None),
                 }
             },
+            // case of the value transactions
             _ => {
-                self.push(Box::new(tx));
-                Ok(self)
+                match self.find_by(tx.tx) {
+                    None => Ok(Some(tx)),
+                    _ => Err(LedgerError::DuplicateTransaction),
+                }
             }
         }
     }
@@ -102,15 +151,13 @@ impl TryAdd<Transaction> for Ledger {
     type Error = LedgerError;
 
     fn try_add(&mut self, tx: Transaction) -> Result<&Self, Self::Error> {
-        match tx.tx_type {
-            TxType::Dispute | TxType::Deposit | TxType::Chargeback => {
-                let index = self.transactions.find_by(tx.tx);
-
+        match self.transactions.verify(Box::new(tx))? {
+            Some(tx) => {
+                self.accounts.try_add(&tx)?;
+                self.transactions.push(tx);
                 Ok(self)
             },
-            _ => {
-
-
+            None => {
                 Ok(self)
             }
         }
@@ -155,5 +202,6 @@ mod test {
         let result = accounts.contains(2);
         assert_eq!(true, result);
     }
+
 
 }

@@ -5,6 +5,7 @@ mod account;
 pub type SerialTransaction = serial_transaction::SerialTransaction;
 
 pub type Transaction = transaction::Transaction;
+pub type TransactionError = transaction::TransactionError;
 pub type TxType = transaction::TxType;
 pub type ClientId = transaction::ClientId;
 pub type TxId = transaction::TxId;

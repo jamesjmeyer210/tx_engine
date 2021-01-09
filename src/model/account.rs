@@ -1,8 +1,10 @@
+use serde::{Serialize};
 use super::ClientId;
 use crate::TryAdd;
 use crate::model::Transaction;
 use crate::model::TxType;
 
+#[derive(Debug, Serialize)]
 pub struct Account {
     pub client: ClientId,
     pub available: f32,
@@ -11,9 +13,10 @@ pub struct Account {
     pub locked: bool,
 }
 
-pub type AccountError = &'static str;
-
-static INSUFFICIENT_FUNDS: AccountError = "Insufficient funds";
+#[derive(Debug, PartialEq)]
+pub enum AccountError {
+    InsufficientFunds
+}
 
 impl Account {
     pub fn new() -> Self {
@@ -40,7 +43,7 @@ impl Account {
 
     fn withdraw(&mut self, amount: f32) -> Result<&Self,AccountError> {
         if self.available < amount {
-            Err("Insufficient funds")
+            Err(AccountError::InsufficientFunds)
         }
         else {
             self.total -= amount;
@@ -132,7 +135,7 @@ mod test {
         let result = account.withdraw(99.0002);
         assert!(result.is_err());
         result.map_err(|o|{
-            assert_eq!(INSUFFICIENT_FUNDS, o);
+            assert_eq!(AccountError::InsufficientFunds, o);
         });
     }
 }

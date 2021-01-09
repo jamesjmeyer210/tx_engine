@@ -1,6 +1,12 @@
 use super::SerialTransaction;
 use std::convert::TryFrom;
 
+#[derive(Debug)]
+pub enum TransactionError {
+    InvalidTxType,
+    NegativeAmount,
+}
+
 pub enum TxType {
     Deposit,
     Withdraw,
@@ -10,7 +16,7 @@ pub enum TxType {
 }
 
 impl TryFrom<&str> for TxType {
-    type Error = ();
+    type Error = TransactionError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -19,7 +25,7 @@ impl TryFrom<&str> for TxType {
             "dispute" => Ok(TxType::Dispute),
             "resolve" => Ok(TxType::Resolve),
             "chargeback" => Ok(TxType::Chargeback),
-            _ => Err(()),
+            _ => Err(TransactionError::InvalidTxType),
         }
     }
 }
@@ -35,13 +41,13 @@ pub struct Transaction {
 }
 
 impl TryFrom<SerialTransaction> for Transaction {
-    type Error = ();
+    type Error = TransactionError;
 
     fn try_from(value: SerialTransaction) -> Result<Self, Self::Error> {
         let tx_type = TxType::try_from(&*value.tx_type)?;
 
         if 0.0 > value.amount {
-            Err(())
+            Err(TransactionError::NegativeAmount)
         } else {
             Ok(Transaction {
                 tx_type,

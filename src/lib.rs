@@ -7,6 +7,12 @@ trait TryAdd<T> {
     fn try_add(&mut self, _: T) -> Result<&Self,Self::Error>;
 }
 
+trait Verify<T> {
+    type Error;
+
+    fn verify(&self, _: T) -> Result<Option<T>,Self::Error>;
+}
+
 trait Contains<T> {
     fn contains(&self, target: T) -> bool;
 }

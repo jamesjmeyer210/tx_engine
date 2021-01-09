@@ -12,7 +12,7 @@ trait Contains<T> {
 }
 
 trait FindBy<T> {
-    fn find_by(&self, target: T) -> Option<u32>;
+    fn find_by(&self, target: T) -> Option<usize>;
 }
 
 pub type Ledger = ledger::Ledger;

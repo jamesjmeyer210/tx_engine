@@ -11,7 +11,7 @@ pub struct Account {
     pub locked: bool,
 }
 
-type AccountError = &'static str;
+pub type AccountError = &'static str;
 
 static INSUFFICIENT_FUNDS: AccountError = "Insufficient funds";
 

@@ -10,3 +10,4 @@ pub type ClientId = transaction::ClientId;
 pub type TxId = transaction::TxId;
 
 pub type Account = account::Account;
+pub type AccountError = account::AccountError;

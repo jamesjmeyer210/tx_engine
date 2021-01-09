@@ -5,7 +5,7 @@ use crate::model::{SerialTransaction, Transaction, TransactionError, TxType, Cli
 use crate::model::{Account, AccountError};
 use crate::{FindBy, TryAdd, Verify};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LedgerError {
     TransactionNotFound,
     DuplicateTransaction,
@@ -82,7 +82,7 @@ impl Verify<Box<Transaction>> for Vec<Box<Transaction>> {
     fn verify(&self, tx: Box<Transaction>) -> Result<Option<Box<Transaction>>,LedgerError> {
         match tx.tx_type {
             // case of the reference transactions
-            TxType::Dispute | TxType::Deposit | TxType::Chargeback => {
+            TxType::Dispute | TxType::Resolve | TxType::Chargeback => {
                 match self.find_by(tx.tx) {
                     Some(index) => {
                         let reference = self.get(index).unwrap();
@@ -179,4 +179,86 @@ mod test {
         assert_eq!(None, accounts.find_by(4));
     }
 
+    #[test]
+    fn verify_returns_ok_when_tx_is_new() -> Result<(),LedgerError> {
+        let txs: Vec<Box<Transaction>> = Vec::new();
+
+        let tx = Box::new(Transaction {
+            tx_type: TxType::Deposit,
+            tx: 1,
+            client: 1,
+            amount: 10.00,
+        });
+
+        let result = txs.verify(tx)?.unwrap();
+        assert_eq!(1, result.tx);
+        Ok(())
+    }
+
+    #[test]
+    fn verify_returns_err_when_transaction_is_duplicate() -> () {
+        let mut txs: Vec<Box<Transaction>> = Vec::with_capacity(1);
+
+        let tx = Transaction {
+            tx_type: TxType::Deposit,
+            tx: 1,
+            client: 1,
+            amount: 10.00,
+        };
+
+        txs.push(Box::new(tx.clone()));
+
+        let result = txs.verify(Box::new(tx));
+        assert!(result.is_err());
+        assert_eq!(LedgerError::DuplicateTransaction, result.unwrap_err());
+    }
+
+    #[test]
+    fn verify_returns_ok_with_new_tx_when_tx_is_reference() -> Result<(),LedgerError> {
+        let txs: Vec<Box<Transaction>> = vec![Box::new(Transaction {
+            tx_type: TxType::Deposit,
+            tx: 1,
+            client: 2,
+            amount: 10.00,
+        })];
+
+        let ref_tx_types = vec![TxType::Dispute, TxType::Resolve, TxType::Chargeback];
+
+        for tx_type in ref_tx_types {
+            let ref_tx = Box::new( Transaction {
+                tx_type: tx_type.clone(),
+                tx: 1,
+                client: 2,
+                amount: 0.0,
+            });
+
+            let result = txs.verify(ref_tx)?.unwrap();
+            assert_eq!(tx_type, result.tx_type);
+            assert_eq!(1, result.tx);
+            assert_eq!(2, result.client);
+            assert_eq!(10.00, result.amount);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn verify_returns_none_when_referred_to_tx_does_not_exit() -> Result<(),LedgerError> {
+        let txs: Vec<Box<Transaction>> = vec![];
+
+        let ref_tx_types = vec![TxType::Dispute, TxType::Resolve, TxType::Chargeback];
+
+        for tx_type in ref_tx_types {
+            let ref_tx = Box::new( Transaction {
+                tx_type: tx_type.clone(),
+                tx: 1,
+                client: 2,
+                amount: 0.0,
+            });
+
+            assert!(txs.verify(ref_tx)?.is_none())
+        }
+
+        Ok(())
+    }
 }

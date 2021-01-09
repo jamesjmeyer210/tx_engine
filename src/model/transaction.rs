@@ -1,12 +1,13 @@
 use super::SerialTransaction;
 use std::convert::TryFrom;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TransactionError {
     InvalidTxType,
     NegativeAmount,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub enum TxType {
     Deposit,
     Withdraw,
@@ -33,6 +34,7 @@ impl TryFrom<&str> for TxType {
 pub type ClientId = u16;
 pub type TxId = u32;
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Transaction {
     pub tx_type: TxType,
     pub client: ClientId,

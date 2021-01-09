@@ -12,8 +12,9 @@ fn main() -> io::Result<()> {
                 .flexible(true)
                 .from_path(file_name)?;
 
-            let ledger = Ledger::try_from(&mut reader).unwrap();
-            Ok(ledger.display())
+            let mut ledger = Ledger::try_from(&mut reader).unwrap();
+            ledger.display().unwrap();
+            Ok(())
         },
         _ => Err(io::Error::from(io::ErrorKind::InvalidInput))
     }

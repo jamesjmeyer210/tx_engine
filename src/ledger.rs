@@ -33,9 +33,6 @@ pub struct Ledger {
 
 impl Ledger {
     pub fn display(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        // self.accounts.iter().for_each(|a|{
-        //     println!("{:?}", a.as_ref())
-        // })
 
         let mut wtr = csv::Writer::from_writer(std::io::stdout());
         for account in self.accounts.drain(..){

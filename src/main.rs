@@ -2,6 +2,7 @@ use std::env;
 use std::io;
 use tx_engine::Ledger;
 use std::convert::TryFrom;
+use csv::Trim;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -9,6 +10,7 @@ fn main() -> io::Result<()> {
         Some(file_name) => {
             let mut reader = csv::ReaderBuilder::new()
                 .delimiter(b',')
+                .trim(Trim::All)
                 .flexible(true)
                 .from_path(file_name)?;
 

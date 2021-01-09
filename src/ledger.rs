@@ -34,7 +34,7 @@ impl Ledger {
 
     pub fn display(&self) -> () {
         self.accounts.iter().for_each(|a|{
-            println!("{:?}", a)
+            println!("{:?}", a.as_ref())
         })
     }
 }

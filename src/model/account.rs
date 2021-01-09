@@ -7,9 +7,9 @@ use crate::model::TxType;
 #[derive(Debug, Serialize)]
 pub struct Account {
     pub client: ClientId,
-    pub available: f32,
-    pub held: f32,
-    pub total: f32,
+    pub available: f64,
+    pub held: f64,
+    pub total: f64,
     pub locked: bool,
 }
 
@@ -35,13 +35,13 @@ impl Account {
         account
     }
 
-    fn deposit(&mut self, amount: f32) -> Result<&Self,AccountError> {
+    fn deposit(&mut self, amount: f64) -> Result<&Self,AccountError> {
         self.available += amount;
         self.total += amount;
         Ok(self)
     }
 
-    fn withdraw(&mut self, amount: f32) -> Result<&Self,AccountError> {
+    fn withdraw(&mut self, amount: f64) -> Result<&Self,AccountError> {
         if self.available < amount {
             Err(AccountError::InsufficientFunds)
         }
@@ -52,19 +52,19 @@ impl Account {
         }
     }
 
-    fn dispute(&mut self, amount: f32) -> Result<&Self,AccountError> {
+    fn dispute(&mut self, amount: f64) -> Result<&Self,AccountError> {
         self.available -= amount;
         self.held += amount;
         Ok(self)
     }
 
-    fn resolve(&mut self, amount: f32) -> Result<&Self,AccountError> {
+    fn resolve(&mut self, amount: f64) -> Result<&Self,AccountError> {
         self.available += amount;
         self.held -= amount;
         Ok(self)
     }
 
-    fn chargeback(&mut self, amount: f32) -> Result<&Self,AccountError> {
+    fn chargeback(&mut self, amount: f64) -> Result<&Self,AccountError> {
         self.held -= amount;
         self.total -= amount;
         self.locked = true;
@@ -92,6 +92,11 @@ impl TryAdd<&Transaction> for Account {
 mod test {
 
     use super::*;
+
+    #[test]
+    fn account_derives_debug() -> () {
+        println!("{:?}", Account::with_client_id(77));
+    }
 
     #[test]
     fn try_add_returns_ok_on_deposit() -> Result<(),AccountError> {
@@ -137,5 +142,42 @@ mod test {
         result.map_err(|o|{
             assert_eq!(AccountError::InsufficientFunds, o);
         }).unwrap_err()
+    }
+
+    #[test]
+    fn dispute_decreases_available_and_increases_held() -> Result<(),AccountError> {
+        let mut account = Account::new();
+        account.available = 42.0024;
+        account.held = 24.0042;
+
+        let result = account.dispute(10.0)?;
+        assert_eq!(32.0024, result.available);
+        assert_eq!(34.0042, result.held);
+        Ok(())
+    }
+
+    #[test]
+    fn resolve_increase_available_and_decreases_held() -> Result<(),AccountError> {
+        let mut account = Account::new();
+        account.available = 42.0024;
+        account.held = 24.0042;
+
+        let result = account.resolve(10.0)?;
+        assert_eq!(52.0024, result.available);
+        assert_eq!(14.0042, result.held);
+        Ok(())
+    }
+
+    #[test]
+    fn chargeback_decreases_total_and_held_and_locks_account() -> Result<(),AccountError> {
+        let mut account = Account::new();
+        account.total = 23.5711;
+        account.held = 3.35;
+
+        let result = account.chargeback(2.0)?;
+        assert_eq!(21.5711, result.total);
+        assert_eq!(1.35, result.held);
+        assert_eq!(true, result.locked);
+        Ok(())
     }
 }

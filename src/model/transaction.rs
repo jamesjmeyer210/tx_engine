@@ -37,7 +37,7 @@ pub struct Transaction {
     pub tx_type: TxType,
     pub client: ClientId,
     pub tx: TxId,
-    pub amount: f32,
+    pub amount: f64,
 }
 
 impl TryFrom<SerialTransaction> for Transaction {

@@ -9,8 +9,7 @@ fn main() -> io::Result<()> {
         Some(file_name) => {
             let mut reader = csv::Reader::from_path(file_name)?;
             let ledger = Ledger::try_from(&mut reader).unwrap();
-            ledger.display();
-            Ok(())
+            Ok(ledger.display())
         },
         _ => Err(io::Error::from(io::ErrorKind::InvalidInput))
     }

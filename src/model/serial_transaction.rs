@@ -6,5 +6,5 @@ pub struct SerialTransaction {
     pub tx_type: String,
     pub client: u16,
     pub tx: u32,
-    pub amount: f32,
+    pub amount: f64,
 }
